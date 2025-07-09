@@ -3,30 +3,23 @@
 package model;
 
 public class Stock {
-    private String name;
-    private double price;
-    private double changePercent;
+	private String name;
+    private int price;
+    private double rate;
 
-    public Stock(String name, double price) {
+    public Stock(String name, int price, double rate) {
         this.name = name;
         this.price = price;
-        this.changePercent = 0.0;
+        this.rate = rate;
     }
 
-    public String getName() {
-        return name;
+    public void updatePrice() {
+        double change = 1 + (rate / 100);
+        price = (int)(price * change);
+        rate = (Math.random() * 20 - 10); // -10% ~ +10% 변동
     }
 
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double newPrice) {
-        this.changePercent = ((newPrice - this.price) / this.price) * 100;
-        this.price = newPrice;
-    }
-
-    public double getChangePercent() {
-        return changePercent;
-    }
+    public String getName() { return name; }
+    public int getPrice() { return price; }
+    public double getRate() { return rate; }
 }
