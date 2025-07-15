@@ -36,4 +36,14 @@ public class StockDAO {
 
         return stockMap;
     }
+    
+    public static void insertStock(Stock stock) throws Exception {
+        String sql = "INSERT INTO stock (id, stock_name, stock_price) VALUES (stock_seq.NEXTVAL, ?, ?)";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, stock.getName());
+            pstmt.setInt(2, stock.getPrice());
+            pstmt.executeUpdate();
+        }
+    }
 }

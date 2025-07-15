@@ -29,11 +29,11 @@ public class QuizDAO {
             while (rs.next()) {
                 String question = rs.getString("question");
                 String[] options = new String[4];
-                options[0] = rs.getString("opt1");
-                options[1] = rs.getString("opt2");
-                options[2] = rs.getString("opt3");
-                options[3] = rs.getString("opt4");
-                int answer = rs.getInt("answer");
+                options[0] = rs.getString("option1");
+                options[1] = rs.getString("option2");
+                options[2] = rs.getString("option3");
+                options[3] = rs.getString("option4");
+                int answer = rs.getInt("correct_option");
 
                 quizList.add(new Quiz(question, options, answer));
             }
