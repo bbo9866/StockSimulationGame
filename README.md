@@ -90,28 +90,27 @@
 ## 📂 프로젝트 구조 (MVC)
 📁 model/
 
-┣ 📄 Player.java
+  ┣ 📄 Player.java
 
-┣ 📄 Stock.java
+  ┣ 📄 Stock.java
 
-┣ 📄 Quiz.java
+  ┣ 📄 Quiz.java
 
-┣ 📄 QuizDAO.java
+  ┣ 📄 QuizDAO.java
 
-┣ 📄 StockDAO.java
+  ┣ 📄 StockDAO.java
 
 📁 view/
 
- ┗ 📄 GameView.java
+   ┗ 📄 GameView.java
 
 📁 controller/
  
- ┗ 📄 MainController.java
+   ┗ 📄 MainController.java
 
 📁 util/
 
-
- ┗ 📄 DBUtil.java
+   ┗ 📄 DBUtil.java
 
 📄 dbinfo.properties
 
