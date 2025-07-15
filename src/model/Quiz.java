@@ -2,8 +2,6 @@
 // ---------------------
 package model;
 
-import java.util.Scanner;
-
 public class Quiz {
 	private String question;
     private String[] options;

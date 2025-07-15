@@ -1,91 +1,178 @@
 package controller;
 
-import view.GameView;
-import model.Player;
-import model.Portfolio;
-import model.Quiz;
-import model.Stock;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
+
+import model.Player;
+import model.Quiz;
+import model.QuizDAO;
+import model.Stock;
+import model.StockDAO;
+import view.GameView;
 
 public class MainController {
 
 	private GameView view = new GameView();
-    private List<Quiz> quizList = new ArrayList<>();
-    private Map<String, Stock> stockMap = new LinkedHashMap<>();
-    private Player player;
+	private List<Quiz> quizList = new ArrayList<>();
+	private Map<String, Stock> stockMap = new LinkedHashMap<>();
+	private Map<String, List<Double>> turnRates = new LinkedHashMap<>();
+	private Player player;
 
-    public void run() {
-        initQuiz();
-        initStocks();
+	public void run() {
+		try {
+			initQuiz();
+			initStocks();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-        String name = view.inputName();
-        player = new Player(name);
-        view.welcome(name);
+		String name = view.inputName();
 
-        int quizScore = view.showQuiz(quizList);
-        view.showInvestmentIntro();
+		player = new Player(name);
+		view.welcome(name);
 
-        for (int turn = 1; turn <= 5; turn++) {
-            System.out.println("\n--- TURN " + turn + " ---");
-            boolean endTurn = false;
-            while (!endTurn) {
-                view.showStocks(stockMap);
-                int menu = view.showMenu();
-                switch (menu) {
-                    case 1 -> {
-                        int code = view.inputCode("매수");
-                        int qty = view.inputQuantity();
-                        Stock stock = getStockByCode(code);
-                        int cost = stock.getPrice() * qty;
-                        if (player.deductCash(cost)) {
-                            player.buy(stock.getName(), qty);
-                            System.out.println("→ " + stock.getName() + " " + qty + "주 매수 완료 (" + cost + "원 차감)");
-                        } else System.out.println("→ 잔액 부족");
-                    }
-                    case 2 -> {
-                        int code = view.inputCode("매도");
-                        int qty = view.inputQuantity();
-                        Stock stock = getStockByCode(code);
-                        if (player.sell(stock.getName(), qty)) {
-                            int income = stock.getPrice() * qty;
-                            player.addCash(income);
-                            System.out.println("→ " + stock.getName() + " " + qty + "주 매도 완료 (" + income + "원 입금)");
-                        } else System.out.println("→ 보유 수량 부족");
-                    }
-                    case 3 -> {
-                        System.out.printf("\n[현재 잔고] %,d원\n", player.getCash());
-                        view.showHoldings(player, stockMap);
-                    }
-                    case 4 -> endTurn = true;
-                }
-            }
-            stockMap.values().forEach(Stock::updatePrice);
-        }
-        int eval = player.evaluate(stockMap);
-        view.showResult(eval, quizScore);
-    }
+		// 퀴즈 전 시세 안내
+		view.showStockIntro();
+		view.showStocks(stockMap);
 
-    private void initQuiz() {
-        quizList.add(new Quiz("주식을 매수한다는 뜻은?", new String[]{"주식을 판다", "주식을 산다", "현금을 인출한다", "이자를 받는다"}, 2));
-        quizList.add(new Quiz("PER(주가수익비율)은 무엇을 나타내나요?", new String[]{"부채비율", "기업의 순이익", "주가가 이익의 몇 배인지", "배당금 비율"}, 3));
-        quizList.add(new Quiz("주식시장에서 ‘호가’란 무엇을 의미하나요?", new String[]{"거래 수수료", "주식을 보유한 기간", "사고파는 가격", "투자자 등급"}, 3));
-        quizList.add(new Quiz("장기투자의 장점으로 올바른 것은?", new String[]{"단타보다 수수료가 많이 든다", "가격 예측이 어려워진다", "복리 효과를 기대할 수 있다", "하루에 수익을 내야 한다"}, 3));
-        quizList.add(new Quiz("분산투자가 필요한 이유는?", new String[]{"한 종목에 집중해서 더 큰 수익을 내기 위해", "여러 종목에 나누어 위험을 줄이기 위해", "수수료를 높이기 위해", "종목을 많이 보유하면 부자가 되기 위해"}, 2));
-    }
+		// 메뉴 반복
+		boolean proceedToQuiz = true;
+		while (proceedToQuiz) {
+			String choice = view.showPreQuizMenu();
 
-    private void initStocks() {
-        stockMap.put("삼성전자", new Stock("삼성전자", 65000, 1.2));
-        stockMap.put("SK하이닉스", new Stock("SK하이닉스", 120000, -0.8));
-        stockMap.put("현대차", new Stock("현대차", 180000, 0.3));
-    }
+			try {
+				int number = Integer.parseInt(choice);
+				
+				switch (number) {
+					case 1 -> {
+						String newName = view.inputStockName();
+						int newPrice = view.inputStockPrice();
+						Stock stock = new Stock(newName, newPrice);
+	
+						try {
+							if (StockDAO.existsByName(newName)) {
+								System.out.println("이미 존재하는 종목입니다. 다른 이름을 입력해주세요.");
+								break; // 중복이므로 추가하지 않고 종료
+							}
+	
+							StockDAO.insertStock(stock);
+							System.out.println("종목 추가 완료!");
+	
+							if (!turnRates.containsKey(newName)) {
+								turnRates.put(newName, new ArrayList<>());
+							}
+	
+							stockMap = StockDAO.getAllStocks();
+							view.showStocks(stockMap);
+	
+						} catch (Exception e) {
+							System.out.println("중복된 종목입니다. 다시 입력하세요.");
+							continue;
+						}
+					}
+					case 2 -> proceedToQuiz = false;
+					default -> {
+						System.out.println("올바른 번호를 입력해주세요.");
+						continue;
+					}
+				}
+			} catch (Exception e) {
+				System.out.println("올바른 번호를 입력해주세요.");
+				continue;
+			}
 
-    private Stock getStockByCode(int code) {
-        List<Stock> list = new ArrayList<>(stockMap.values());
-        return list.get(code - 1);
-    }
+		}
+
+		int quizScore = view.showQuiz(quizList);
+		view.showInvestmentIntro();
+
+		for (int turn = 1; turn <= 5; turn++) {
+			System.out.println("\n--- TURN " + turn + " ---");
+			boolean endTurn = true;
+
+			while (endTurn) {
+				view.showStockTurnHistory(stockMap, turnRates);
+				int menu = view.showMenu();
+
+				switch (menu) {
+				case 1 -> {
+					int code = view.inputCode("매수");
+					int qty = view.inputQuantity();
+					Stock stock = getStockByCode(code);
+					int cost = stock.getPrice() * qty;
+
+					if (player.deductCash(cost)) {
+						player.buy(stock.getName(), qty);
+						System.out.println("####################");
+						System.out.println("→ " + stock.getName() + " " + qty + "주 매수 완료 (" + cost + "원 차감)");
+
+					} else
+						System.out.println("→ 잔액 부족");
+				}
+
+				case 2 -> {
+					int code = view.inputCode("매도");
+					int qty = view.inputQuantity();
+					Stock stock = getStockByCode(code);
+
+					if (player.sell(stock.getName(), qty)) {
+						int income = stock.getPrice() * qty;
+						player.addCash(income);
+						System.out.println("####################");
+						System.out.println("→ " + stock.getName() + " " + qty + "주 매도 완료 (" + income + "원 입금)");
+
+					} else
+						System.out.println("→ 보유 수량 부족");
+				}
+
+				case 3 -> {
+					System.out.println("####################");
+					System.out.printf("\n[현재 잔고] %,d원\n", player.getCash());
+
+				}
+				case 4 -> endTurn = false;
+
+				}
+			}
+			// 턴 종료 후 가격 업데이트 및 변화율 기록
+			for (Stock stock : stockMap.values()) {
+				stock.updatePrice(); // 내부에서 가격 & 변화율 갱신
+				turnRates.get(stock.getName()).add(stock.getRate()); // 외부에서 변화율 저장
+
+			}
+		}
+		int eval = player.evaluate(stockMap);
+		view.showResult(eval, quizScore);
+	}
+
+	private void initQuiz() {
+
+		try {
+
+			quizList = QuizDAO.getRandomQuizzes(5);
+
+		} catch (Exception e) {
+			System.out.println("퀴즈 데이터를 불러오는 중 오류 발생: " + e.getMessage());
+		}
+
+	}
+
+	private void initStocks() {
+		try {
+			stockMap = StockDAO.getAllStocks();
+			for (String name : stockMap.keySet()) {
+				turnRates.put(name, new ArrayList<>()); // 종목별 턴별 변화율 초기화
+			}
+		} catch (Exception e) {
+			System.out.println("주식 데이터를 불러오는 중 오류 발생: " + e.getMessage());
+		}
+	}
+
+	private Stock getStockByCode(int code) {
+		List<Stock> list = new ArrayList<>(stockMap.values());
+		return list.get(code - 1);
+	}
+
 }
